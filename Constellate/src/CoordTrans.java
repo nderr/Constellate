@@ -25,7 +25,9 @@ public class CoordTrans {
 		this.lon = lon;
 	}
 	
-	//TODO easier way to do this: divide lst by 360, cast as int, then multiply by 2 pi
+	//TODO easier way to do this: divide lst by 360, cast as int, subtract cast
+	// from figure, then multiply remaining decimal by 2 pi to get in radians 
+	// instead of degrees
 	/**
 	 * @param time current UTC time (milliseconds since UTC epoch)
 	 * @return local sidereal time at provided time
@@ -43,7 +45,9 @@ public class CoordTrans {
 		return lmst(System.currentTimeMillis());
 	}
 	
-	//TODO easier way to do this: divide gst by 360, cast as int, then multiply by 2 pi!
+	//TODO easier way to do this: divide gst by 360, cast as int, subtract cast
+	// from figure, then multiply remaining decimal by 2 pi to get in radians 
+	// instead of degrees
 	/**
 	 * @param time current UTC time (milliseconds since UTC epoch)
 	 * @return greenwich sidereal time at provided time
@@ -78,7 +82,7 @@ public class CoordTrans {
 	 */
 	public double[] getXY(Star s, double alt, double azi, double spin) {
 		Vector dir = s.getHat();
-		double lst = 0;//lmst();
+		double lst = 0;//lmst(); TEMPORARY FOR FIXED SKY
 		return getXY(dir.getX(),dir.getY(),dir.getZ(),alt,azi,spin,lat,lst);
 	}
 	
