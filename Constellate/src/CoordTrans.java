@@ -1,5 +1,6 @@
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
+import static java.lang.Math.PI;
 
 /**
  * Object for transforming coordinates between rotated reference systems
@@ -11,7 +12,7 @@ public class CoordTrans {
 	public static final long J2000 = 946728000000L; // UTC time at J2000 epoch
 	public static final double MS_PER_DAY = 86400000.0;
 	
-	// latitude and longitude
+	// latitude and longitude IN RADIANS
 	private double lat;
 	private double lon;
 	
@@ -25,16 +26,17 @@ public class CoordTrans {
 		this.lon = lon;
 	}
 	
-	//TODO easier way to do this: divide lst by 360, cast as int, subtract cast
-	// from figure, then multiply remaining decimal by 2 pi to get in radians 
-	// instead of degrees
 	/**
 	 * @param time current UTC time (milliseconds since UTC epoch)
 	 * @return local sidereal time at provided time
 	 */
 	public double lmst(long time) {
 		double lst = gmst(time) + lon;
-		while (lst > 360) lst -= 360;
+		if (lst >= 2*PI) {
+			lst -= 2*PI;
+		} else if (lst < 0) {
+			lst += 2*PI;
+		}
 		return lst;
 	}
 	
@@ -45,9 +47,6 @@ public class CoordTrans {
 		return lmst(System.currentTimeMillis());
 	}
 	
-	//TODO easier way to do this: divide gst by 360, cast as int, subtract cast
-	// from figure, then multiply remaining decimal by 2 pi to get in radians 
-	// instead of degrees
 	/**
 	 * @param time current UTC time (milliseconds since UTC epoch)
 	 * @return greenwich sidereal time at provided time
@@ -55,8 +54,8 @@ public class CoordTrans {
 	public double gmst(long time) {
 		long durMil = time - J2000;
 		double days = durMil / MS_PER_DAY;
-		double gst = 280.46061837 + 360.98564736629 * days;
-		while (gst > 360) gst -= 360;
+		double gstRev = (280.46061837 + 360.98564736629 * days) / 360;
+		double gst = (gstRev - (long) gstRev)*2*Math.PI;
 		return gst;
 	}
 	
@@ -132,5 +131,14 @@ public class CoordTrans {
 				- sazi*(-clst*slat*x + slat*slst*y + clat*z));
 		
 		return coords;
+	}
+	
+	public static void main(String[] args) {
+		CoordTrans ct = new CoordTrans(40,-89);
+		double gst = ct.gmst()*180/Math.PI;
+		System.out.println(gst);
+		int d = (int) gst;
+		int m = (int) ((gst - d)*60);
+		System.out.println(d + ":" + m);
 	}
 }
