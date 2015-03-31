@@ -1,3 +1,5 @@
+import com.google.gson.Gson;
+
 /**
  * Represents a star with a unique ID number
  * @author nderr
@@ -5,17 +7,22 @@
 public class Star implements Comparable<Star> {
 	
 	// constant unique id
-	public final int ID;
+	public int ID_NUM = -1;
 	
 	// in RADIANS
-	private double ra;
-	private double dec;
+	private double ra = 0;
+	private double dec = 0;
+	
+	private double x = 0;
+	private double y = 0;
 	
 	// position on unit celestial sphere
-	private Vector hat;
+	private Vector hat = null;
 	
 	// apparent magnitude (smaller is brighter!)
-	private double mag;
+	private double mag = 0;
+	
+	public Star() { }
 	
 	/**
 	 * Creates star with given id, right ascension, declination, and apparent
@@ -26,7 +33,7 @@ public class Star implements Comparable<Star> {
 	 * @param mag apparent magnitude
 	 */
 	public Star(int id, double ra, double dec, double mag) {
-		ID = id;
+		this.ID_NUM = id;
 		this.ra = ra;
 		this.dec = dec;
 		this.mag = mag;
@@ -80,6 +87,46 @@ public class Star implements Comparable<Star> {
 	 */
 	public double getDec() {
 		return dec;
+	}
+	
+	public int getX(int w, int h) {
+		double d = Math.sqrt(Math.pow(w,2) + Math.pow(h,2));
+		int xx = (int) ((d/2)*x + w/2);
+		return xx;
+	}
+	
+	public int getY(int w, int h) {
+		double d = Math.sqrt(Math.pow(w,2) + Math.pow(h,2));
+		int yy = (int) (-(d/2)*y + h/2);
+		return yy;
+	}
+	
+	public boolean setPlot(CoordTrans ct) {
+		Vector coords = ct.getXY(this);
+		double rad = Math.sin(ct.getAngDiam() / 2);
+		x = coords.getX() / rad;
+		y = coords.getY() / rad;
+		return true;
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("ID : " + ID_NUM);
+		sb.append("\nRA : " + ra);
+		sb.append("\nDec: " + dec);
+		sb.append("\nMag: " + mag);
+		return sb.toString();
+	}
+	
+	public static void main(String[] args) {
+		Gson gson = new Gson();
+		Star s = new Star(1,0,0,0);
+		String j = gson.toJson(s);
+		System.out.println(j);
+		Star s2 = gson.fromJson(j,Star.class);
+		System.out.println(s2);
+		System.out.println(Integer.MAX_VALUE);
 	}
 	
 }

@@ -1,3 +1,5 @@
+import java.text.DecimalFormat;
+
 /**
  * Represents a three dimensional Euclidean vector using an array of size 3
  * @author nderr
@@ -88,6 +90,13 @@ public class Vector {
 	public double dot(Vector that) {
 		return this.getX() * that.getX() + this.getY() * that.getY() 
 				+ this.getZ() * that.getZ();
+	}
+	
+	@Override
+	public String toString() {
+		DecimalFormat df = new DecimalFormat("#0.00");
+		return "[ " + df.format(getX()) + " , " + df.format(getY()) + " , " + 
+				df.format(getZ()) + " ] ";
 	}
 	
 }

@@ -15,15 +15,23 @@ public class CoordTrans {
 	// latitude and longitude IN RADIANS
 	private double lat;
 	private double lon;
+	private double el;
+	private double az;
+	private double spin;
+	private double angDiam;
 	
 	/**
 	 * Creates coordinate transform object at given latitude and longitude
 	 * @param lat latitude
 	 * @param lon longitude
 	 */
-	public CoordTrans(double lat, double lon) {
+	public CoordTrans(double lat, double lon, double el, double az, double spin, double ang) {
 		this.lat = lat;
 		this.lon = lon;
+		this.el = el;
+		this.az = az;
+		this.spin = spin;
+		this.angDiam = ang;
 	}
 	
 	/**
@@ -66,6 +74,37 @@ public class CoordTrans {
 		return gmst(System.currentTimeMillis());
 	}
 	
+	//TODO note lst set to zero for testing
+	/**
+	 * Gets the celestial direction normal to the screen's current orientation
+	 * @param alt altitude
+	 * @param azi azimuth
+	 * @return cartesian vector normal to the screen's current orientation
+	 */
+	public Vector getHat() {
+		double lst = 0;// NOTE SET TO ZERO FOR TESTING
+		return getHat(el,az,lat,lst);
+	}
+	
+	public static Vector getHat(double el, double az, double lat, double lst) {
+
+		// trig functions
+		double cel = cos(el);
+		double caz = cos(az);
+		double clat = cos(lat);
+		double clst = cos(lst);
+		double sel = sin(el);
+		double saz = sin(az);
+		double slat = sin(lat);
+		double slst = sin(lst);
+
+		return new Vector(
+			clat * clst * sel + cel * (-caz * clst * slat + saz * slst), // X
+			-clat * sel * slst + cel * (saz * clst + caz * slat * slst), // Y
+			caz * cel * clat + sel * slat // Z
+		);
+	}
+	
 	//TODO NOTE THAT LST IS SET TO ZERO HERE FOR A FIXED VIEW OF SKY FOR TESTING
 	/**
 	 * Get current x and y coordinates of star on flat surface at location of
@@ -74,15 +113,19 @@ public class CoordTrans {
 	 * with certain spin around normal (in radians)
 	 * 
 	 * @param s Star to get position of
-	 * @param alt altitude (above horizon) of line of sight in radians
-	 * @param azi azimuth (clockwise from north) of line of sight in radians
+	 * @param alt alitude (above horizon) of line of sight in radians
+	 * @param azi azmuth (clockwise from north) of line of sight in radians
 	 * @param spin rotation of surface (clockwise around line of sight) in radians
 	 * @return x and y coordinates of star on surface
 	 */
-	public double[] getXY(Star s, double alt, double azi, double spin) {
+	public Vector getXY(Star s) {
 		Vector dir = s.getHat();
-		double lst = 0;//lmst(); TEMPORARY FOR FIXED SKY
-		return getXY(dir.getX(),dir.getY(),dir.getZ(),alt,azi,spin,lat,lst);
+		double lst = 0;//lmst();
+		return getXY(dir.getX(),dir.getY(),dir.getZ(),el,az,spin,lat,lst);
+	}
+	
+	public double getAngDiam() {
+		return angDiam;
 	}
 	
 	/**
@@ -100,41 +143,48 @@ public class CoordTrans {
 	 * @param lst local sidereal time of location
 	 * @return x and y coordinates of location on surface
 	 */
-	public static double[] getXY(double x, double y, double z, double alt, 
-			double azi, double spin, double lat, double lst) {
+	public static Vector getXY(double x, double y, double z, double el, 
+			double az, double spin, double lat, double lst) {
 		
 		// trig functions
-		double calt = cos(alt);
-		double cazi = cos(azi);
+		double cel = cos(el);
+		double caz = cos(az);
 		double cspin = cos(spin);
 		double clat = cos(lat);
 		double clst = cos(lst);
-		double salt = sin(alt);
-		double sazi = sin(azi);
+		double sel = sin(el);
+		double saz = sin(az);
 		double sspin = sin(spin);
 		double slat = sin(lat);
 		double slst = sin(lst);
 		
 		// get array for x and y
-		double[] coords = new double[2];
+		double xx, yy;
 		
 		// x coordinate
-		coords[0] = cspin*(cazi*(slst*x + clst*y) - sazi*(slat*(-clst*x 
-				+ slst*y) + clat*z)) + sspin*(-calt*(clat*(clst*x - slst*y) 
-				+ slat*z) + salt*(sazi*(slst*x + clst*y) + cazi*(-clst*slat*x 
+		xx = cspin*(caz*(slst*x + clst*y) - saz*(slat*(-clst*x 
+				+ slst*y) + clat*z)) + sspin*(-cel*(clat*(clst*x - slst*y) 
+				+ slat*z) + sel*(saz*(slst*x + clst*y) + caz*(-clst*slat*x 
 				+ slat*slst*y + clat*z)));
 		
 		// y coordinate
-		coords[1] = calt*cspin*(clat*(clst*x - slst*y) + slat*z) 
-				- cspin*salt*(sazi*(slst*x + clst*y) + cazi*(-clst*slat*x 
-				+ slat*slst*y + clat*z)) + sspin*(cazi*(slst*x + clst*y) 
-				- sazi*(-clst*slat*x + slat*slst*y + clat*z));
+		yy = cel*cspin*(clat*(clst*x - slst*y) + slat*z) 
+				- cspin*sel*(saz*(slst*x + clst*y) + caz*(-clst*slat*x 
+				+ slat*slst*y + clat*z)) + sspin*(caz*(slst*x + clst*y) 
+				- saz*(-clst*slat*x + slat*slst*y + clat*z));
 		
-		return coords;
+		// if need z coordinate, this should be it
+		/*
+		zz = cel*sazi*(clst*y + slst*x) + sel*(clat*clst*x 
+				+ slat*z - clat*slst*y) + cazi*cel*(clat*z + slat*(-clst*x 
+				+ slst*y));
+		*/
+		
+		return new Vector(xx,yy,0);
 	}
 	
 	public static void main(String[] args) {
-		CoordTrans ct = new CoordTrans(40,-89);
+		CoordTrans ct = new CoordTrans(40,-89,0,0,0,1);
 		double gst = ct.gmst()*180/Math.PI;
 		System.out.println(gst);
 		int d = (int) gst;
