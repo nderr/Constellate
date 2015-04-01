@@ -12,18 +12,16 @@ public class CoordTrans {
 	public static final long J2000 = 946728000000L; // UTC time at J2000 epoch
 	public static final double MS_PER_DAY = 86400000.0;
 	
-	// latitude and longitude IN RADIANS
-	private double lat;
-	private double lon;
-	private double el;
-	private double az;
-	private double spin;
-	private double angDiam;
+	private double lat; // latitude in radians
+	private double lon; // longitude in radians
+	private double el; // elevation in radians
+	private double az; // azimuth (clockwise from north) in radians
+	private double spin; // spin (clockwise) of screen
+	private double angDiam; // angular diameter of portion of sky on screen
 	
 	/**
-	 * Creates coordinate transform object at given latitude and longitude
-	 * @param lat latitude
-	 * @param lon longitude
+	 * Creates coordinate transform object at given lat,lon, elevation, azimuth,
+	 * spin, and angular diameter of target sky piece
 	 */
 	public CoordTrans(double lat, double lon, double el, double az, double spin, double ang) {
 		this.lat = lat;
@@ -74,7 +72,6 @@ public class CoordTrans {
 		return gmst(System.currentTimeMillis());
 	}
 	
-	//TODO note lst set to zero for testing
 	/**
 	 * Gets the celestial direction normal to the screen's current orientation
 	 * @param alt altitude
@@ -82,10 +79,13 @@ public class CoordTrans {
 	 * @return cartesian vector normal to the screen's current orientation
 	 */
 	public Vector getHat() {
-		double lst = 0;// NOTE SET TO ZERO FOR TESTING
+		double lst = lmst();
 		return getHat(el,az,lat,lst);
 	}
 	
+	/**
+	 * Get direction vector at arbitrary place and orientation
+	 */
 	public static Vector getHat(double el, double az, double lat, double lst) {
 
 		// trig functions
@@ -105,7 +105,6 @@ public class CoordTrans {
 		);
 	}
 	
-	//TODO NOTE THAT LST IS SET TO ZERO HERE FOR A FIXED VIEW OF SKY FOR TESTING
 	/**
 	 * Get current x and y coordinates of star on flat surface at location of
 	 * this coordinate transform with normal pointing at altitude (above 
@@ -120,8 +119,8 @@ public class CoordTrans {
 	 */
 	public Vector getXY(Star s) {
 		Vector dir = s.getHat();
-		double lst = 0;//lmst();
-		return getXY(dir.getX(),dir.getY(),dir.getZ(),el,az,spin,lat,lst);
+		double lst = lmst();
+		return getXY(dir.getX(),dir.getY(),dir.getZ(),el,az,spin,lat,lst,angDiam);
 	}
 	
 	public double getAngDiam() {
@@ -144,7 +143,7 @@ public class CoordTrans {
 	 * @return x and y coordinates of location on surface
 	 */
 	public static Vector getXY(double x, double y, double z, double el, 
-			double az, double spin, double lat, double lst) {
+			double az, double spin, double lat, double lst, double angDiam) {
 		
 		// trig functions
 		double cel = cos(el);
@@ -180,9 +179,12 @@ public class CoordTrans {
 				+ slst*y));
 		*/
 		
-		return new Vector(xx,yy,0);
+		return new Vector(2 * xx / angDiam, 2 * yy / angDiam,0);
 	}
 	
+	/**
+	 * driver method for testing
+	 */
 	public static void main(String[] args) {
 		CoordTrans ct = new CoordTrans(40,-89,0,0,0,1);
 		double gst = ct.gmst()*180/Math.PI;

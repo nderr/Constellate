@@ -13,6 +13,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import com.google.gson.Gson;
+
 /**
  * Driver class for rough plotting using JFreeChart
  * @author nderr
@@ -23,64 +25,48 @@ public class SkyPlot {
 	 * Reads in data from hygdata_v3.csv and plots star positions at Madison
 	 */
 	public static void main(String[] args) {
+		long t1 = System.currentTimeMillis();
+		Gson gson = new Gson();
 		Scanner s = null;
 		try {
-			s = new Scanner(new File("hygdata_v3.csv"));
-			s.nextLine();
-			s.nextLine();
+			s = new Scanner(new File("stars.json"));
 		} catch (IOException e) {
-			System.out.println("Problem with hyg file");
+			System.out.println("Problem with stars.json");
 			System.exit(-1);
 		}
-		String[] info = null;
 		
 		List<Star> stars = new ArrayList<Star>();
 		while (s.hasNextLine()) {
-			info = s.nextLine().split(",");
-			int id = Integer.parseInt(info[0]);
-			double ra = Double.parseDouble(info[23]);
-			double dec = Double.parseDouble(info[24]);
-			double mag = Double.parseDouble(info[13]);
-			stars.add(new Star(id,ra,dec,mag));
+			stars.add(gson.fromJson(s.nextLine(),Star.class));
 		}
+		long t2 = System.currentTimeMillis();
 		
 		try {
-			s = new Scanner(new File("const6.csv"));
+			s = new Scanner(new File("const.json"));
 		} catch (IOException e) {
-			System.out.println("Problem with constellation file");
+			System.out.println("Problem with const.json");
 			System.exit(-1);
 		}
 		
 		List<Constellation> cons = new ArrayList<Constellation>();
-		String curr = "AND";
-		List<Line> lines = new ArrayList<Line>();
-		String code = null, name = null;
-		int id1, id2;
 		while (s.hasNextLine()) {
-			info = s.nextLine().split(",");
-			code = info[0];
-			if (!curr.equals(code)) {
-				cons.add(new Constellation(lines,name,curr));
-				lines = new ArrayList<Line>();
-				curr = code;
-			}
-			name = info[1];
-			id1 = Integer.parseInt(info[2]);
-			id2 = Integer.parseInt(info[3]);
-			lines.add(new Line(id1,id2));
+			cons.add(gson.fromJson(s.nextLine(),Constellation.class));
 		}
-		cons.add(new Constellation(lines,name,code));
 		
-		System.out.println("Stars: " + stars.size() + "\nConstellations: " + cons.size());
+		long t3 = System.currentTimeMillis();
 		
-		final Sky sky = new Sky(stars,cons,5);
-		System.out.println("Stars: " + sky.getStars().size() + "\nConstellations: " + sky.getConst().size());
-		CoordTrans ct = new CoordTrans(43.07*Math.PI/180,-89.4*Math.PI/180,Math.PI/7,-.1,0,Math.PI/1.5);
-		sky.addViewConst("UMA");
-		sky.addViewConst("UMI");
-		sky.addViewConst("DRA");
+		final Sky sky = new Sky(stars,cons,6.5);
+		
+		sky.addViewConst();
+		
+		long t4 = System.currentTimeMillis();
+		
+		CoordTrans ct = new CoordTrans(43.07*Math.PI/180,-89.4*Math.PI/180,Math.PI/7,0,0,Math.PI/1.5);
 		
 		sky.lookAt(ct);
+		
+		long t5 = System.currentTimeMillis();
+		
 		final SkyPlot sp = new SkyPlot();
 		SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -92,7 +78,17 @@ public class SkyPlot {
         });
 		
 		
-		
+		long t6 = System.currentTimeMillis();
+		int d1 = (int) (t2 - t1);
+		int d2 = (int) (t3 - t2);
+		int d3 = (int) (t4 - t3);
+		int d4 = (int) (t5 - t4);
+		int d5 = (int) (t6 - t5);
+		System.out.println("Loading stars: " + d1);
+		System.out.println("Loading constellations: " + d2);
+		System.out.println("Making sky: " + d3);
+		System.out.println("Pointing to sky: " + d4);
+		System.out.println("Plotting: " + d5);
 	}
 	
 	@SuppressWarnings("serial")
@@ -127,27 +123,30 @@ public class SkyPlot {
 		private void doDrawing(Graphics g) {
 			Graphics2D g2d = (Graphics2D) g;
 			
-			g2d.setColor(Color.blue);
-			
 			Dimension size = getSize();
 	        Insets insets = getInsets();
 
 	        int w = size.width - insets.left - insets.right;
 	        int h = size.height - insets.top - insets.bottom;
 	        
+	        setBackground(Color.BLUE);
+	        
 	        for (Star s : sky.getStarFOV()) {
 	        	int x = s.getX(w,h);
 	        	int y = s.getY(w,h);
-	        	g2d.drawOval(x-1, y-1, 2, 2);
+	        	int r = (int) (6 - s.getMag());
+	        	g2d.setColor(Color.YELLOW);
+	        	g2d.fillOval(x-r, y-r, 2*r, 2*r);
 	        }
 	        
 	        for (Constellation c : sky.getConstFOV()) {
-	        	int[] coords = c.plotLines(w,h);
+	        	int[] coords = c.getLines(w,h);
 	        	for (int i = 0; i < coords.length; i += 4) {
 	        		int x1 = coords[i];
 	        		int y1 = coords[i + 1];
 	        		int x2 = coords[i + 2];
 	        		int y2 = coords[i + 3];
+	        		g2d.setColor(Color.WHITE);
 	        		g2d.drawLine(x1, y1, x2, y2);
 	        	}
 	        }
