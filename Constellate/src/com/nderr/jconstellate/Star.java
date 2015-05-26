@@ -104,7 +104,7 @@ public class Star implements Comparable<Star> {
 	public String getCode() {
 		return cons;
 	}
-	
+
 	/**
 	 * Returns the star's Flamsteed identifier, or null if none
 	 */
